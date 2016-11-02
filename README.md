@@ -73,8 +73,7 @@ AES128-GCM-SHA256:AES128-SHA:AES128-SHA256:AES256-GCM-SHA384:AES256-SHA:AES256-S
 
 In input spec, but not supported by server: RC4-MD5
 
-Supported by server, but not in input spec:
-ECDHE-RSA-AES128-SHA256
+Supported by server, but not in input spec: ECDHE-RSA-AES128-SHA256
 
 Input spec and server preference differ.
 Input spec:
