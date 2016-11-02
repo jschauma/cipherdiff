@@ -85,4 +85,4 @@ that are deprioritized by the server compared to the
 spec in red, and ciphers that are preferred by the
 server over the spec in yellow:
 
-[[./doc/colorexample.png]]
+[[https://raw.githubusercontent.com/jschauma/cipherdiff/master/doc/colorexample.png]]
