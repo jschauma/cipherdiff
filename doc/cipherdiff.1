@@ -1,0 +1,134 @@
+.\"
+.Dd October 31, 2016
+.Dt cipherdiff 1
+.Os
+.Sh NAME
+.Nm cipherdiff
+.Nd diff ciphersuites between a server and a spec
+.Sh SYNOPSIS
+.Nm
+.Op Fl chlpuv
+.Op Fl o Ar openssl
+.Op Fl s Ar spec
+.Ar server
+.Op port
+.Sh DESCRIPTION
+The
+.Nm
+tool will report the list of SSL and TLS ciphers
+supported by the given server in colon-separated,
+ordered format.
+If an optional spec is provided via the
+.Fl s
+flag, then
+.Nm
+will also report on the differences between what the
+server supports versus what the spec provides.
+.Pp
+If no
+.Ar port
+is specified,
+.Nm
+will connect to port 443 on the given server.
+.Sh OPTIONS
+The following options are supported by
+.Nm :
+.Bl -tag -width o_openssl_
+.It Fl c
+When reporting cipher preference differences, display
+mismatches in color.
+Ciphers missing on the server but found in the spec
+will be printed in blue, extra ciphers offered by
+the server but not found in the spec in magenta, ciphers
+that are deprioritized by the server compared to the
+spec in red, and ciphers that are preferred by the
+server over the spec in yellow.
+.Pp
+This is really only useful if the provided and
+observed specs are sufficiently similar.
+.It Fl h
+Display help and exit.
+.It Fl l
+List supported ciphers.
+This is the default action.
+If combined with
+.Fl p ,
+the result will be sorted in order of preference by
+the server, otherwise alphabetically.
+.It Fl u
+List ciphers supported by the local
+.Xr openssl 1
+command, but not supported by the remote server.
+.It Fl o Ar openssl
+Use the
+.Xr openssl 1
+binary found in this location.
+If not specified,
+.Nm
+will look in a conservatively set PATH of the usual
+suspects.
+.Ns ( Nm
+will not honor your PATH environment variable since it
+runs with taint checking turned on.)
+.It Fl p
+Perform a strict comparison to the given spec,
+accounting for server preference.
+This is slow (O(n^2) on the number of ciphers
+supported by the
+.Xr openssl 1
+library), as numerous connections have to be made
+to the server.
+.It Fl s Ar spec
+Diff the server's ciphersuite against the given spec.
+.It Fl v
+Be verbose.
+Can be specified multiple times.
+.El
+.Sh DETAILS
+Numerous tools exist to identify the different
+cipher suites and SSL/TLS protocols supported by a
+server.
+However, in order to verify whether a remote server
+matches an exact cipher spec, one needs to iterate
+over all protocols and compare them to the given list.
+.Pp
+This process is very cumbersome, especially when
+attempted at any larger scale.
+.Nm
+allows you to perform this task and report on the
+differences in a more convenient manner.
+It does so by making multiple connections using the
+.Xr openssl 1
+.Xr s_client 1
+command and observing the cipher suite chosen by the
+server.
+.Pp
+In order to be able to test support for a given cipher
+suite, it necessarily must be supported by the local
+client (i.e. the
+.Xr openssl 1
+library in use).
+Results against the same server will thus vary
+depending on which cipher suites your library
+supports.
+.Sh EXAMPLES
+The following examples illustrate common usage of this tool.
+.Pp
+To merely report the cipher suites supported by
+www.example.com on port 1234:
+.Bd -literal -offset indent
+cipherdiff www.example.com 1234
+.Ed
+.Sh EXIT STATUS
+.Ex -std 
+.Sh SEE ALSO
+.Xr nmap 1 ,
+.Xr openssl 1
+.Sh HISTORY
+.Nm
+was originally written by
+.An Jan Schaumann
+.Aq jschauma@netmeister.org
+in October 2016.
+.Sh BUGS
+Please file bugs and feature requests by emailing the author.
