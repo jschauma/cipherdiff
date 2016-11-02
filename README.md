@@ -85,4 +85,4 @@ that are deprioritized by the server compared to the
 spec in red, and ciphers that are preferred by the
 server over the spec in yellow:
 
-![color output example](docs/colorexample.png)
+![color output example](master/doc/colorexample.png)
