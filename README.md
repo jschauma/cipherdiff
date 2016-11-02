@@ -11,8 +11,13 @@ discrepancies in the cipher order of the server versus
 the given spec.
 
 Please see the
-[[https://raw.githubusercontent.com/jschauma/cipherdiff/master/doc/cipherdiff.txt]]
+[man page](https://raw.githubusercontent.com/jschauma/cipherdiff/master/doc/cipherdiff.txt)
 for details.
+
+If you have questions, comments, or suggestions,
+please contact the author at
+[jschauma@netmeister.org](mailto:jschauma@netmeister.org)
+or at [@jschauma](https://twitter.com/jschauma).
 
 ## Examples
 
