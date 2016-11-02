@@ -1,4 +1,4 @@
-eipherdiff
+cipherdiff
 ==========
 
 This tool allows you to compare the list of SSL/TLS
