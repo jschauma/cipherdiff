@@ -10,6 +10,10 @@ the spec but not supported by the server, as well as
 discrepancies in the cipher order of the server versus
 the given spec.
 
+Please see the
+[[https://raw.githubusercontent.com/jschauma/cipherdiff/master/doc/cipherdiff.txt]]
+for details.
+
 ## Examples
 
 ### Listing ciphers in alphabetical order
