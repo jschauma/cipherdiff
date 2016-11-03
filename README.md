@@ -92,6 +92,33 @@ Observed preference:
 ECDHE-RSA-AES128-GCM-SHA256:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-RSA-AES128-SHA256:ECDHE-RSA-AES256-SHA384:ECDHE-RSA-AES128-SHA:ECDHE-RSA-AES256-SHA:AES128-GCM-SHA256:AES256-GCM-SHA384:AES128-SHA256:AES256-SHA256:AES128-SHA:AES256-SHA:DES-CBC3-SHA
 ```
 
+Since reading differences in a long cipher spec can be
+difficult, you can also ask cipherdiff(1) to generate
+unified diff(1) output, which humans may find easier
+to read:
+
+```
+$ cipherdiff -d -s $(cat /tmp/s) -p www.yahoo.com
+--- given spec
++++ server
+@@ -1,13 +1,13 @@
+ ECDHE-RSA-AES128-GCM-SHA256
+ ECDHE-RSA-AES256-GCM-SHA384
++ECDHE-RSA-AES128-SHA256
+ ECDHE-RSA-AES256-SHA384
+-RC4-MD5
+ ECDHE-RSA-AES128-SHA
+ ECDHE-RSA-AES256-SHA
+ AES128-GCM-SHA256
+ AES256-GCM-SHA384
+-AES256-SHA256
+ AES128-SHA256
++AES256-SHA256
+ AES128-SHA
+ AES256-SHA
+ DES-CBC3-SHA
+```
+
 You can also get the output marked up using terminal
 color escape sequences using the '-c' flag:
 

@@ -1,5 +1,5 @@
 .\"
-.Dd November 02, 2016
+.Dd November 03, 2016
 .Dt cipherdiff 1
 .Os
 .Sh NAME
@@ -7,7 +7,7 @@
 .Nd diff ciphersuites between a server and a spec
 .Sh SYNOPSIS
 .Nm
-.Op Fl chlpuv
+.Op Fl cdhpuv
 .Op Fl o Ar openssl
 .Op Fl s Ar spec
 .Ar server
@@ -46,6 +46,16 @@ server over the spec in yellow.
 .Pp
 This is really only useful if the provided and
 observed specs are sufficiently similar.
+.It Fl d
+Report differences in the cipher preferences via
+.Xr diff 1 .
+.Pp
+In this case, the cipher spec will be organized as a
+line-break separated list and differences displayed in
+\'unified' output.
+.Pp
+This flag implies
+.Fl p .
 .It Fl h
 Display help and exit.
 .It Fl l

@@ -47,6 +47,7 @@ use warnings;
 use strict;
 
 use File::Basename;
+use File::Temp qw(tempfile);
 use Term::ANSIColor;
 
 use Getopt::Long;
@@ -195,10 +196,12 @@ sub compareToSpec() {
 		return;
 	}
 
-	if (!$OPTS{'color'}) {
-		plainReport();
-	} else {
+	if ($OPTS{'color'}) {
 		colorReport();
+	} elsif ($OPTS{'diff'}) {
+		diffReport();
+	} else {
+		plainReport();
 	}
 }
 
@@ -212,6 +215,27 @@ sub determineOrder() {
 		my $next = shift(@set);
 		weighOneCipher($next, @set);
 	}
+}
+
+sub diffReport() {
+	my @serverCiphers = sortedKeys(\%WEIGHTED_CIPHERS);
+	my @spec = split(":", $OPTS{'spec'});
+
+	my ($fh1, $specFile) = tempfile(UNLINK => 1);
+	my ($fh2, $serverFile) = tempfile(UNLINK => 1);
+
+	print $fh1 join("\n", @spec) . "\n";
+	print $fh2 join("\n", @serverCiphers) . "\n";
+
+	my $output = `diff -u $specFile $serverFile`;
+
+	$output =~ s/^--- .*/--- given spec/;
+	$output =~ s/\+\+\+ .*/\+\+\+ server/;
+
+	print $output;
+
+	close($fh1);
+	close($fh2);
 }
 
 sub identifyListOfCiphers() {
@@ -254,8 +278,8 @@ sub init() {
 
 	$ok = GetOptions(
 			 "color|c"       => \$OPTS{'color'},
+			 "diff|d"        => sub { $OPTS{'diff'} = 1; $OPTS{'preference'} = 1; },
 			 "help|h"        => \$OPTS{'help'},
-			 "list|l"        => \$OPTS{'list'},
 			 "openssl|o=s"   => \$OPTS{'openssl'},
 			 "pref|p"        => \$OPTS{'preference'},
 			 "spec|s=s"      => \$OPTS{'spec'},
@@ -275,8 +299,8 @@ sub init() {
 		# NOTREACHED
 	}
 
-	if ($OPTS{'list'} && ($OPTS{'spec'} || $OPTS{'unsupported'})) {
-		print STDERR "'-l' and '-s'/'-u' are mutually exclusive.\n";
+	if ($OPTS{'diff'} && !$OPTS{'spec'}) {
+		print STDERR "'-d' requires '-s'.\n";
 		exit(1);
 		# NOTREACHED
 	}
@@ -327,11 +351,15 @@ sub plainReport() {
 		}
 	}
 
+	my $p = 0;
 	if (scalar(@shared)) {
-		print "Shared ciphers: " . join(":", @shared) . "\n\n"
+		$p = 1;
+		print "Shared ciphers: " . join(":", @shared) . "\n"
 	}
 
-	my $p = 0;
+	print $p ? "\n" : "";
+	$p = 0;
+
 	foreach my $c (sort(keys(%WANTED_CIPHERS))) {
 		if (!$CLIENT_CIPHERS{$c}) {
 			$p = 1;
@@ -411,9 +439,10 @@ sub usage($) {
 	my $FH = $err ? \*STDERR : \*STDOUT;
 
 	print $FH <<EOH
-Usage: $PROGNAME [-hlpv] [-o openssl] [-s spec]
+Usage: $PROGNAME [-cdhpv] [-o openssl] [-s spec]
+  -c          display differences in color
+  -d          list differences using diff(1)
   -h          print this help and exit
-  -l          list ciphers supported by the server
   -o openssl  use this openssl binary
   -p          compare or list preference order
   -s spec     compare to this spec
