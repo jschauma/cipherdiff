@@ -1,5 +1,5 @@
 .\"
-.Dd November 03, 2016
+.Dd November 07, 2016
 .Dt cipherdiff 1
 .Os
 .Sh NAME
@@ -7,7 +7,7 @@
 .Nd diff ciphersuites between a server and a spec
 .Sh SYNOPSIS
 .Nm
-.Op Fl cdhpuv
+.Op Fl Vcdhpuv
 .Op Fl o Ar openssl
 .Op Fl s Ar spec
 .Ar server
@@ -34,6 +34,8 @@ will connect to port 443 on the given server.
 The following options are supported by
 .Nm :
 .Bl -tag -width o_openssl_
+.It Fl V
+Print version information and exit.
 .It Fl c
 When reporting cipher preference differences, display
 mismatches in color.
@@ -121,6 +123,12 @@ library in use).
 Results against the same server will thus vary
 depending on which cipher suites your library
 supports.
+.Pp
+Finally, when comparing a server's list of ciphers to
+a provided spec,
+.Nm
+will generate no output if the two match and simply
+return an exit status of 0.
 .Sh EXAMPLES
 The following examples illustrate common usage of this tool.
 .Pp
@@ -150,7 +158,22 @@ $ cipherdiff -s $(cat /tmp/s) -p www.example.com
 .Ns ...
 .Ed
 .Sh EXIT STATUS
-.Ex -std 
+The exit status of
+.Nm
+depends upon its invocation:
+.Pp
+When comparing cipher suites (i.e. the
+.Fl s
+flag was given), then
+.Nm
+will return an exit status of 0 if no differences were
+found, an exit status of 1 if any errors were
+encountered, and an exit status of 2 if differences
+were found.
+.Pp
+When listing cipher suites,
+.Nm
+exits 0 on success, and >0 if an error occurred.
 .Sh SEE ALSO
 .Xr openssl 1
 .Sh HISTORY

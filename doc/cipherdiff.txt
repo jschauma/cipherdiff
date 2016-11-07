@@ -4,7 +4,7 @@ NAME
      cipherdiff -- diff ciphersuites between a server and a spec
 
 SYNOPSIS
-     cipherdiff [-chlpuv] [-o openssl] [-s spec] server [port]
+     cipherdiff [-Vcdhpuv] [-o openssl] [-s spec] server [port]
 
 DESCRIPTION
      The cipherdiff tool will report the list of SSL and TLS ciphers supported
@@ -19,6 +19,8 @@ DESCRIPTION
 OPTIONS
      The following options are supported by cipherdiff:
 
+     -V		 Print version information and exit.
+
      -c		 When reporting cipher preference differences, display mis-
 		 matches in color.  Ciphers missing on the server but found in
 		 the spec will be printed in blue, extra ciphers offered by
@@ -29,6 +31,14 @@ OPTIONS
 
 		 This is really only useful if the provided and observed specs
 		 are sufficiently similar.
+
+     -d		 Report differences in the cipher preferences via diff(1).
+
+		 In this case, the cipher spec will be organized as a line-
+		 break separated list and differences displayed in 'unified'
+		 output.
+
+		 This flag implies -p.
 
      -h		 Display help and exit.
 
@@ -71,6 +81,10 @@ DETAILS
      in use).  Results against the same server will thus vary depending on
      which cipher suites your library supports.
 
+     Finally, when comparing a server's list of ciphers to a provided spec,
+     cipherdiff will generate no output if the two match and simply return an
+     exit status of 0.
+
 EXAMPLES
      The following examples illustrate common usage of this tool.
 
@@ -97,7 +111,15 @@ EXAMPLES
 	   ...
 
 EXIT STATUS
-     The cipherdiff utility exits 0 on success, and >0 if an error occurs.
+     The exit status of cipherdiff depends upon its invocation:
+
+     When comparing cipher suites (i.e. the -s flag was given), then
+     cipherdiff will return an exit status of 0 if no differences were found,
+     an exit status of 1 if any errors were encountered, and an exit status of
+     2 if differences were found.
+
+     When listing cipher suites, cipherdiff exits 0 on success, and >0 if an
+     error occurred.
 
 SEE ALSO
      openssl(1)
@@ -109,4 +131,4 @@ HISTORY
 BUGS
      Please file bugs and feature requests by emailing the author.
 
-NetBSD 7.0		       November 02, 2016		    NetBSD 7.0
+NetBSD 7.0		       November 07, 2016		    NetBSD 7.0

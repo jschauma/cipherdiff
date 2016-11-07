@@ -64,14 +64,16 @@ my %OPTS = (
 		'spec'    => ""
 	   );
 my $PROGNAME = basename($0);
+my $VERSION = "0.3";
 
 my %CLIENT_CIPHERS;
 my %SUPPORTED_CIPHERS;
 my %UNKNOWN_CIPHERS;
 my %UNSUPPORTED_CIPHERS;
 my %WANTED_CIPHERS;
-
 my %WEIGHTED_CIPHERS;
+
+my $RETVAL = 0;
 
 ###
 ### Subroutines
@@ -129,40 +131,48 @@ sub colorReport() {
 	my $i = 0;
 	my $e = 0;
 
+	my $output = "";
+
 	foreach my $c (@ciphers) {
 		my %h = %{$out{$c}};
 
 		foreach my $ec (keys(%extra)) {
 			if ($extra{$ec} == $i) {
-				print colored($ec, 'blue');
+				$output .= colored($ec, 'blue');
 				if ($n > 1) {
-					print ":";
+					$output .= ":";
 				}
 				delete($extra{$ec});
 				$e++;
+				$RETVAL = 2;
 			}
 		}
 
 		my $found = $h{'found'} - $e;
 		if ($h{'wanted'} == -1) {
-			print colored($c, 'magenta');
+			$output .= colored($c, 'magenta');
+			$RETVAL = 2;
 			$e--;
 		} elsif ($h{'wanted'} == $found) {
-			print $c;
+			$output .= $c;
 		} elsif ($h{'wanted'} > $found) {
-			print colored($c, 'yellow');
+			$output .= colored($c, 'yellow');
+			$RETVAL = 2;
 		} elsif ($h{'wanted'} < $found) {
-			print colored($c, 'red');
+			$output .= colored($c, 'red');
+			$RETVAL = 2;
 		}
 
 		if ($n > 1) {
-			print ":";
+			$output .= ":";
 		}
 		$n--;
 		$i++;
 	}
 
-	print scalar(@ciphers) ? "\n" : "";
+	if ($RETVAL == 2) {
+		print $output . "\n";
+	}
 }
 
 # Take two cipher suites and return the preferred cipher.
@@ -236,6 +246,10 @@ sub diffReport() {
 
 	close($fh1);
 	close($fh2);
+
+	if (length($output)) {
+		$RETVAL = 2;
+	}
 }
 
 sub identifyListOfCiphers() {
@@ -260,7 +274,7 @@ sub identifyListOfCiphers() {
 		# What's more, s_client(1) may return 0 on handshake
 		# failure.  Therefore, we have to do the janky thing
 		# and parse stderr. :-/
-		if ($out =~ m/alert handshake failure|no cipher(s available| match)/i) {
+		if ($out =~ m/alert (protocol version|handshake failure)|no cipher(s available| match)/i) {
 			verbose("'$c' not supported by the server.");
 			$UNSUPPORTED_CIPHERS{$c} = 1;
 		} elsif ($out =~ m/New,.*Cipher is [^(]/) {
@@ -277,15 +291,16 @@ sub init() {
 	my ($ok);
 
 	$ok = GetOptions(
-			 "color|c"       => \$OPTS{'color'},
-			 "diff|d"        => sub { $OPTS{'diff'} = 1; $OPTS{'preference'} = 1; },
-			 "help|h"        => \$OPTS{'help'},
-			 "openssl|o=s"   => \$OPTS{'openssl'},
-			 "pref|p"        => \$OPTS{'preference'},
-			 "spec|s=s"      => \$OPTS{'spec'},
-			 "unsupported|u" => \$OPTS{'unsupported'},
-			 "verbose|v"     => sub { $OPTS{'verbose'}++; },
-			 );
+			"Version|V"     => sub { print "$PROGNAME: $VERSION\n"; exit(0); },
+			"color|c"       => \$OPTS{'color'},
+			"diff|d"        => sub { $OPTS{'diff'} = 1; $OPTS{'preference'} = 1; },
+			"help|h"        => \$OPTS{'help'},
+			"openssl|o=s"   => \$OPTS{'openssl'},
+			"pref|p"        => \$OPTS{'preference'},
+			"spec|s=s"      => \$OPTS{'spec'},
+			"unsupported|u" => \$OPTS{'unsupported'},
+			"verbose|v"     => sub { $OPTS{'verbose'}++; },
+		);
 
 	if ($OPTS{'help'} || !$ok) {
 		usage($ok);
@@ -301,6 +316,12 @@ sub init() {
 
 	if ($OPTS{'diff'} && !$OPTS{'spec'}) {
 		print STDERR "'-d' requires '-s'.\n";
+		exit(1);
+		# NOTREACHED
+	}
+
+	if ($OPTS{'unsupported'} && $OPTS{'preference'}) {
+		print STDERR "'-p' and '-u' are mutually exclusive.\n";
 		exit(1);
 		# NOTREACHED
 	}
@@ -365,6 +386,7 @@ sub plainReport() {
 			$p = 1;
 			print "In input spec, but not supported by local openssl version: $c\n";
 			$UNKNOWN_CIPHERS{$c} = 1;
+			$RETVAL = 2;
 		}
 	}
 
@@ -375,6 +397,7 @@ sub plainReport() {
 		if (!$SUPPORTED_CIPHERS{$c} && !$UNKNOWN_CIPHERS{$c}) {
 			$p = 1;
 			print "In input spec, but not supported by server: $c\n";
+			$RETVAL = 2;
 		}
 	}
 
@@ -385,6 +408,7 @@ sub plainReport() {
 		if (!$WANTED_CIPHERS{$c}) {
 			$p = 1;
 			print "Supported by server, but not in input spec: $c\n";
+			$RETVAL = 2;
 		}
 	}
 
@@ -400,6 +424,30 @@ sub plainReport() {
 			print "===\n";
 			print "Observed preference:\n";
 			print "$weighted\n";
+			$RETVAL = 2;
+		}
+	}
+}
+
+sub printCipherList() {
+	my @ciphers;
+
+	if (!$OPTS{'preference'} && ($OPTS{'list'} || $OPTS{'unsupported'})) {
+		my %which = %SUPPORTED_CIPHERS;
+		if ($OPTS{'unsupported'}) {
+			%which = %UNSUPPORTED_CIPHERS;
+		}
+		@ciphers = sort(keys(%which));
+
+	} elsif ($OPTS{'list'} && $OPTS{'preference'}) {
+		@ciphers = sortedKeys(\%WEIGHTED_CIPHERS);
+	}
+
+	if (scalar(@ciphers)) {
+		print join(":", @ciphers) . "\n";
+	} else {
+		if ($OPTS{'list'}) {
+			print "No shared ciphers between client and server.\n";
 		}
 	}
 }
@@ -439,7 +487,8 @@ sub usage($) {
 	my $FH = $err ? \*STDERR : \*STDOUT;
 
 	print $FH <<EOH
-Usage: $PROGNAME [-cdhpv] [-o openssl] [-s spec]
+Usage: $PROGNAME [-Vcdhpv] [-o openssl] [-s spec]
+  -V          print version information and exit
   -c          display differences in color
   -d          list differences using diff(1)
   -h          print this help and exit
@@ -488,25 +537,8 @@ sub weighOneCipher($@) {
 
 init();
 identifyListOfCiphers();
-
-if (!$OPTS{'preference'} && ($OPTS{'list'} || $OPTS{'unsupported'})) {
-	my %which = %SUPPORTED_CIPHERS;
-	if ($OPTS{'unsupported'}) {
-		%which = %UNSUPPORTED_CIPHERS;
-	}
-	print join(":", sort(keys(%which))) . "\n";
-
-	exit(0);
-	# NOTREACHED
-}
-
 determineOrder();
-
-if ($OPTS{'list'} && $OPTS{'preference'}) {
-	print join(":", sortedKeys(\%WEIGHTED_CIPHERS)) . "\n";
-	exit(0);
-	# NOTREACHED
-}
-
 compareToSpec();
-exit(0);
+printCipherList();
+
+exit($RETVAL);
