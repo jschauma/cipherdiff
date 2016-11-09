@@ -1,5 +1,8 @@
 Changelog:
 
+Version 0.4 (2016-11-08)
+* test absolutely all ciphers
+
 Version 0.3 (2016-11-07)
 * add '-V' to display version information
 * clarify and update exit codes

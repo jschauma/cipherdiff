@@ -64,7 +64,7 @@ my %OPTS = (
 		'spec'    => ""
 	   );
 my $PROGNAME = basename($0);
-my $VERSION = "0.3";
+my $VERSION = "0.4";
 
 my %CLIENT_CIPHERS;
 my %SUPPORTED_CIPHERS;
@@ -197,7 +197,7 @@ sub compareTwo($$) {
 			return "indeterminate ($a:$b)";
 		}
 	} else {
-		return "fail ($:$b)";
+		return "fail ($a:$b)";
 	}
 }
 
@@ -255,7 +255,7 @@ sub diffReport() {
 sub identifyListOfCiphers() {
 	my $openssl = $OPTS{'openssl'};
 
-	my $out = `$openssl ciphers`;
+	my $out = `$openssl ciphers ALL:COMPLEMENTOFALL`;
 	$out =~ s/:$//;
 	chomp($out);
 
@@ -274,7 +274,7 @@ sub identifyListOfCiphers() {
 		# What's more, s_client(1) may return 0 on handshake
 		# failure.  Therefore, we have to do the janky thing
 		# and parse stderr. :-/
-		if ($out =~ m/alert (protocol version|handshake failure)|no cipher(s available| match)/i) {
+		if ($out =~ m/New, \(NONE\), Cipher is \(NONE\)|(alert|ssl) (protocol version|handshake failure)|no cipher(s available| match)/i) {
 			verbose("'$c' not supported by the server.");
 			$UNSUPPORTED_CIPHERS{$c} = 1;
 		} elsif ($out =~ m/New,.*Cipher is [^(]/) {
