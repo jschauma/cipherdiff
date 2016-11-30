@@ -279,6 +279,11 @@ sub identifyListOfCiphers() {
 			$UNSUPPORTED_CIPHERS{$c} = 1;
 		} elsif ($out =~ m/New,.*Cipher is [^(]/) {
 			$SUPPORTED_CIPHERS{$c} = 1;
+		} elsif ($out =~ m/Operation timed out/i) {
+			print STDERR "Unable to connect to ". $OPTS{'host'} . " on port " .
+					 $OPTS{'port'} . ": operation timed out\n";
+			exit(1);
+			# NOTREACHED
 		} else {
 			print "Unexpected output for $c:\n";
 			print "|$out|\n";
@@ -487,7 +492,7 @@ sub usage($) {
 	my $FH = $err ? \*STDERR : \*STDOUT;
 
 	print $FH <<EOH
-Usage: $PROGNAME [-Vcdhpv] [-o openssl] [-s spec]
+Usage: $PROGNAME [-Vcdhpv] [-o openssl] [-s spec] server [port]
   -V          print version information and exit
   -c          display differences in color
   -d          list differences using diff(1)
@@ -519,15 +524,19 @@ sub weighOneCipher($@) {
 	my ($a, @rest) = @_;
 
 	verbose("Weighing $a against " . scalar(@rest) . " ciphers...", 2);
-	foreach my $b (@rest) {
-		if (!$WEIGHTED_CIPHERS{$a}) {
-			$WEIGHTED_CIPHERS{$a} = 0;
+	if (scalar(@rest) == 0) {
+		$WEIGHTED_CIPHERS{$a} = 0;
+	} else {
+		foreach my $b (@rest) {
+			if (!$WEIGHTED_CIPHERS{$a}) {
+				$WEIGHTED_CIPHERS{$a} = 0;
+			}
+			if (!$WEIGHTED_CIPHERS{$b}) {
+				$WEIGHTED_CIPHERS{$b} = 0;
+			}
+			my $preferred = compareTwo($a, $b);
+			$WEIGHTED_CIPHERS{$preferred}++;
 		}
-		if (!$WEIGHTED_CIPHERS{$b}) {
-			$WEIGHTED_CIPHERS{$b} = 0;
-		}
-		my $preferred = compareTwo($a, $b);
-		$WEIGHTED_CIPHERS{$preferred}++;
 	}
 }
 
