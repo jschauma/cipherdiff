@@ -3,6 +3,7 @@ Changelog:
 Version 0.6 (2016-11-30)
 * add '-l' to list ciphers one per line
 * add '-t' to list ciphers by protocol
+* use '-servername' so SNI works as expected
 
 Version 0.5 (2016-11-29)
 * support services which only offer a single cipher

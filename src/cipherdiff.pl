@@ -183,7 +183,8 @@ sub compareTwo($$) {
 	verbose("Comparing $a <=> $b...", 4);
 
 	my $openssl = $OPTS{'openssl'};
-	my $command = "</dev/null $openssl s_client -cipher $a:$b -connect " .
+	my $command = "</dev/null $openssl s_client -cipher $a:$b " .
+				"-servername " . $OPTS{'host'} . " -connect " .
 				$OPTS{'host'} . ":" . $OPTS{'port'} . " 2>&1";
 
 	my $out = `$command`;
@@ -283,7 +284,8 @@ sub identifyListOfCiphers() {
 				next;
 			}
 
-			my $command = "</dev/null $openssl s_client $flag -cipher $c -connect " . $OPTS{'host'} . ":" . $OPTS{'port'} . " 2>&1";
+			my $command = "</dev/null $openssl s_client $flag -cipher $c -servername " .
+				$OPTS{'host'} . " -connect " . $OPTS{'host'} . ":" . $OPTS{'port'} . " 2>&1";
 			verbose("$command", 3);
 			my $out = `$command`;
 
