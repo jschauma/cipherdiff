@@ -130,3 +130,40 @@ spec in red, and ciphers that are preferred by the
 server over the spec in yellow:
 
 ![color example](https://raw.githubusercontent.com/jschauma/cipherdiff/master/doc/colorexample.png)
+
+### Listing ciphers by protocol
+
+When using the '-l' flag, cipherdiff(1) will print the
+list of supported ciphers together with protocol
+version.  This allows you to identify which
+ciphersuites are supported when using each protocol:
+
+```
+$ cipherdiff.pl -p -l www.yahoo.com
+ECDHE-RSA-AES128-GCM-SHA256: TLS1.2
+ECDHE-RSA-AES256-GCM-SHA384: TLS1.2
+ECDHE-RSA-AES128-SHA256: TLS1.2
+ECDHE-RSA-AES256-SHA384: TLS1.2
+ECDHE-RSA-AES128-SHA: TLS1 TLS1.1 TLS1.2
+ECDHE-RSA-AES256-SHA: TLS1 TLS1.1 TLS1.2
+AES128-GCM-SHA256: TLS1.2
+AES256-GCM-SHA384: TLS1.2
+AES128-SHA256: TLS1.2
+AES128-SHA: TLS1 TLS1.1 TLS1.2
+AES256-SHA: TLS1 TLS1.1 TLS1.2
+AES256-SHA256: TLS1.2
+DES-CBC3-SHA: TLS1 TLS1.1 TLS1.2
+```
+
+You can also generate output sorted by  protocol ('-t'):
+
+```
+$ cipherdiff.pl -p -t www.yahoo.com
+TLS1: ECDHE-RSA-AES128-SHA ECDHE-RSA-AES256-SHA AES128-SHA AES256-SHA DES-CBC3-SHA 
+TLS1.1: ECDHE-RSA-AES128-SHA ECDHE-RSA-AES256-SHA AES128-SHA AES256-SHA DES-CBC3-SHA 
+TLS1.2: ECDHE-RSA-AES128-GCM-SHA256 ECDHE-RSA-AES256-GCM-SHA384 ECDHE-RSA-AES128-SHA256 ECDHE-RSA-AES256-SHA384 ECDHE-RSA-AES128-SHA ECDHE-RSA-AES256-SHA AES256-GCM-SHA384 AES128-SHA256 AES256-SHA256 AES128-SHA AES256-SHA DES-CBC3-SHA AES128-GCM-SHA256
+```
+
+As before, in either case the list of ciphers is
+sorted in order of server preference if the '-p' flag
+is given, or in alphabetical order if not.
