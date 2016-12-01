@@ -4,7 +4,7 @@ NAME
      cipherdiff -- diff ciphersuites between a server and a spec
 
 SYNOPSIS
-     cipherdiff [-Vcdhpuv] [-o openssl] [-s spec] server [port]
+     cipherdiff [-Vcdhlptuv] [-o openssl] [-s spec] server [port]
 
 DESCRIPTION
      The cipherdiff tool will report the list of SSL and TLS ciphers supported
@@ -42,12 +42,9 @@ OPTIONS
 
      -h		 Display help and exit.
 
-     -l		 List supported ciphers.  This is the default action.  If com-
-		 bined with -p, the result will be sorted in order of prefer-
-		 ence by the server, otherwise alphabetically.
-
-     -u		 List ciphers supported by the local openssl(1) command, but
-		 not supported by the remote server.
+     -l		 When listing ciphers, print one cipher name per line.	This
+		 will also display the protocol used for the cipher in ques-
+		 tion.
 
      -o openssl	 Use the openssl(1) binary found in this location.  If not
 		 specified, cipherdiff will look in a conservatively set PATH
@@ -61,6 +58,12 @@ OPTIONS
 		 connections have to be made to the server.
 
      -s spec	 Diff the server's ciphersuite against the given spec.
+
+     -t		 When listing supported ciphers, sort output by protocol.
+		 Implies -l.
+
+     -u		 List ciphers supported by the local openssl(1) command, but
+		 not supported by the remote server.
 
      -v		 Be verbose.  Can be specified multiple times.
 
@@ -93,7 +96,7 @@ EXAMPLES
 
 	   $ cipherdiff www.example.com 1234
 
-     To list the cipher suites supported by www.example.com in port 443 in
+     To list the cipher suites supported by www.example.com on port 443 in
      order of preference:
 
 	   $ cipherdiff -p www.example.com
@@ -108,6 +111,12 @@ EXAMPLES
      the file '/tmp/s':
 
 	   $ cipherdiff -s $(cat /tmp/s) -p www.example.com
+	   ...
+
+     To list the ciphers supported by the server in preference order by proto-
+     col:
+
+	   $ cipherdiff -t -p www.example.com
 	   ...
 
 EXIT STATUS
@@ -131,4 +140,4 @@ HISTORY
 BUGS
      Please file bugs and feature requests by emailing the author.
 
-NetBSD 7.0		       November 07, 2016		    NetBSD 7.0
+NetBSD 7.0		       November 30, 2016		    NetBSD 7.0

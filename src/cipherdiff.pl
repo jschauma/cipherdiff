@@ -64,9 +64,10 @@ my %OPTS = (
 		'spec'    => ""
 	   );
 my $PROGNAME = basename($0);
-my $VERSION = "0.4";
+my $VERSION = "0.6";
 
 my %CLIENT_CIPHERS;
+my %CIPHERS_BY_PROTOCOL;
 my %SUPPORTED_CIPHERS;
 my %UNKNOWN_CIPHERS;
 my %UNSUPPORTED_CIPHERS;
@@ -262,31 +263,68 @@ sub identifyListOfCiphers() {
 	%CLIENT_CIPHERS = map { $_ => 1 } split(":", $out);
 	%WANTED_CIPHERS = map { $_ => 1 } split(":", $OPTS{'spec'});
 
+	my %protocol_flags;
+	if ($OPTS{'line'}) {
+		$protocol_flags{"-ssl2"} = 1;
+		$protocol_flags{"-ssl3"} = 1;
+		$protocol_flags{"-tls1"} = 1;
+		$protocol_flags{"-tls1_1"} = 1;
+		$protocol_flags{"-tls1_2"} = 1;
+	} else {
+		$protocol_flags{" "} = 1;
+	}
+
 	foreach my $c (keys(%CLIENT_CIPHERS)) {
 		verbose("Testing '$c'...");
 
-		my $command = "</dev/null $openssl s_client -cipher $c -connect " . $OPTS{'host'} . ":" . $OPTS{'port'} . " 2>&1";
-		verbose("$command", 2);
-		my $out = `$command`;
+		foreach my $flag (keys(%protocol_flags)) {
+			verbose("Trying with '$flag'...", 2);
+			if (!$protocol_flags{$flag}) {
+				next;
+			}
 
-		# We can't just rely on the return code, since
-		# connections can fail for any number of reasons.
-		# What's more, s_client(1) may return 0 on handshake
-		# failure.  Therefore, we have to do the janky thing
-		# and parse stderr. :-/
-		if ($out =~ m/New, \(NONE\), Cipher is \(NONE\)|(alert|ssl) (protocol version|handshake failure)|no cipher(s available| match)/i) {
-			verbose("'$c' not supported by the server.");
-			$UNSUPPORTED_CIPHERS{$c} = 1;
-		} elsif ($out =~ m/New,.*Cipher is [^(]/) {
-			$SUPPORTED_CIPHERS{$c} = 1;
-		} elsif ($out =~ m/Operation timed out/i) {
-			print STDERR "Unable to connect to ". $OPTS{'host'} . " on port " .
-					 $OPTS{'port'} . ": operation timed out\n";
-			exit(1);
-			# NOTREACHED
-		} else {
-			print "Unexpected output for $c:\n";
-			print "|$out|\n";
+			my $command = "</dev/null $openssl s_client $flag -cipher $c -connect " . $OPTS{'host'} . ":" . $OPTS{'port'} . " 2>&1";
+			verbose("$command", 3);
+			my $out = `$command`;
+
+			if ($out =~ m/unknown option/) {
+				$protocol_flags{$flag} = 0;
+				next;
+			}
+
+			# We can't just rely on the return code, since
+			# connections can fail for any number of reasons.
+			# What's more, s_client(1) may return 0 on handshake
+			# failure.  Therefore, we have to do the janky thing
+			# and parse stderr. :-/
+			if ($out =~ m/New, \(NONE\), Cipher is \(NONE\)|(alert|ssl) (protocol version|handshake failure)|no cipher(s available| match)/i) {
+				verbose("'$c' not supported by the server.");
+				$UNSUPPORTED_CIPHERS{$c} = 1;
+			} elsif ($out =~ m/New,.*Cipher is [^(]/) {
+				my $p = 1;
+				if ($OPTS{'line'}) {
+					$p = uc($flag);
+					$p =~ s/-//;
+					$p =~ s/_/./;
+				}
+				if (!defined($SUPPORTED_CIPHERS{$c})) {
+					$SUPPORTED_CIPHERS{$c} = [];
+				}
+				push($SUPPORTED_CIPHERS{$c}, $p);
+
+				if (!defined($CIPHERS_BY_PROTOCOL{$p})) {
+					$CIPHERS_BY_PROTOCOL{$p} = [];
+				}
+				push($CIPHERS_BY_PROTOCOL{$p}, $c);
+			} elsif ($out =~ m/(.*)\nconnect:errno=0/mi) {
+				print STDERR "Unable to connect to ". $OPTS{'host'} . " on port " .
+						 $OPTS{'port'} . ": $1\n";
+				exit(1);
+				# NOTREACHED
+			} else {
+				print "Unexpected output for $c:\n";
+				print "|$out|\n";
+			}
 		}
 	}
 }
@@ -300,9 +338,11 @@ sub init() {
 			"color|c"       => \$OPTS{'color'},
 			"diff|d"        => sub { $OPTS{'diff'} = 1; $OPTS{'preference'} = 1; },
 			"help|h"        => \$OPTS{'help'},
+			"list|l"        => \$OPTS{'line'},
 			"openssl|o=s"   => \$OPTS{'openssl'},
 			"pref|p"        => \$OPTS{'preference'},
 			"spec|s=s"      => \$OPTS{'spec'},
+			"tls|t"         => sub { $OPTS{'protocols'} = 1; $OPTS{'line'} = 1; },
 			"unsupported|u" => \$OPTS{'unsupported'},
 			"verbose|v"     => sub { $OPTS{'verbose'}++; },
 		);
@@ -327,6 +367,12 @@ sub init() {
 
 	if ($OPTS{'unsupported'} && $OPTS{'preference'}) {
 		print STDERR "'-p' and '-u' are mutually exclusive.\n";
+		exit(1);
+		# NOTREACHED
+	}
+
+	if (($OPTS{'line'} || $OPTS{'protocols'}) && $OPTS{'spec'}) {
+		print STDERR "'-l'/'-t' and '-s' are mutually exclusive.\n";
 		exit(1);
 		# NOTREACHED
 	}
@@ -368,8 +414,41 @@ sub init() {
 	}
 }
 
-sub plainReport() {
+sub listCiphers(@) {
+	my @ciphers = @_;
+	if ($OPTS{'protocols'}) {
+		# This is messy.  We need to go by protocol,
+		# but we want to retain preference order, so we
+		# need to go one by one and pick the matching
+		# ciphers from the preference order.
+		foreach my $p (sort(keys(%CIPHERS_BY_PROTOCOL))) {
+			my @p_ciphers = @{$CIPHERS_BY_PROTOCOL{$p}};
+			if (scalar(@p_ciphers)) {
+				print "$p: ";
+				my @all_ciphers = @ciphers;
+				while(scalar(@all_ciphers)) {
+					my $c1 = shift(@all_ciphers);
+					foreach my $c2 (@p_ciphers) {
+						if ($c1 eq $c2) {
+							print $c1;
+							if (scalar(@all_ciphers)) {
+								print " ";
+							}
+							last;
+						}
+					}
+				}
+				print "\n";
+			}
+		}
+	} else {
+		foreach my $c (@ciphers) {
+			print "$c: " . join(" ", sort(@{$SUPPORTED_CIPHERS{$c}})) . "\n";
+		}
+	}
+}
 
+sub plainReport() {
 	my @shared;
 	foreach my $c (sort(keys(%SUPPORTED_CIPHERS))) {
 		if ($WANTED_CIPHERS{$c}) {
@@ -449,7 +528,11 @@ sub printCipherList() {
 	}
 
 	if (scalar(@ciphers)) {
-		print join(":", @ciphers) . "\n";
+		if ($OPTS{'line'}) {
+			listCiphers(@ciphers);
+		} else {
+			print join(":", @ciphers) . "\n";
+		}
 	} else {
 		if ($OPTS{'list'}) {
 			print "No shared ciphers between client and server.\n";
@@ -492,11 +575,12 @@ sub usage($) {
 	my $FH = $err ? \*STDERR : \*STDOUT;
 
 	print $FH <<EOH
-Usage: $PROGNAME [-Vcdhpv] [-o openssl] [-s spec] server [port]
+Usage: $PROGNAME [-Vcdhlpv] [-o openssl] [-s spec] server [port]
   -V          print version information and exit
   -c          display differences in color
   -d          list differences using diff(1)
   -h          print this help and exit
+  -l          list ciphers one per line
   -o openssl  use this openssl binary
   -p          compare or list preference order
   -s spec     compare to this spec

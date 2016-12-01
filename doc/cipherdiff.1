@@ -1,5 +1,5 @@
 .\"
-.Dd November 07, 2016
+.Dd November 30, 2016
 .Dt cipherdiff 1
 .Os
 .Sh NAME
@@ -7,7 +7,7 @@
 .Nd diff ciphersuites between a server and a spec
 .Sh SYNOPSIS
 .Nm
-.Op Fl Vcdhpuv
+.Op Fl Vcdhlptuv
 .Op Fl o Ar openssl
 .Op Fl s Ar spec
 .Ar server
@@ -61,16 +61,9 @@ This flag implies
 .It Fl h
 Display help and exit.
 .It Fl l
-List supported ciphers.
-This is the default action.
-If combined with
-.Fl p ,
-the result will be sorted in order of preference by
-the server, otherwise alphabetically.
-.It Fl u
-List ciphers supported by the local
-.Xr openssl 1
-command, but not supported by the remote server.
+When listing ciphers, print one cipher name per line.
+This will also display the protocol used for the
+cipher in question.
 .It Fl o Ar openssl
 Use the
 .Xr openssl 1
@@ -92,6 +85,14 @@ library), as numerous connections have to be made
 to the server.
 .It Fl s Ar spec
 Diff the server's ciphersuite against the given spec.
+.It Fl t
+When listing supported ciphers, sort output by protocol.
+Implies
+.Fl l .
+.It Fl u
+List ciphers supported by the local
+.Xr openssl 1
+command, but not supported by the remote server.
 .It Fl v
 Be verbose.
 Can be specified multiple times.
@@ -139,7 +140,7 @@ $ cipherdiff www.example.com 1234
 .Ed
 .Pp
 To list the cipher suites supported by www.example.com
-in port 443 in order of preference:
+on port 443 in order of preference:
 .Bd -literal -offset indent
 $ cipherdiff -p www.example.com
 ECDHE-RSA-AES128-GCM-SHA256:ECDHE-RSA-AES256-GCM-SHA384:...
@@ -155,6 +156,13 @@ To compare the cipher preference on the server against
 the one found in the file '/tmp/s':
 .Bd -literal -offset indent
 $ cipherdiff -s $(cat /tmp/s) -p www.example.com
+.Ns ...
+.Ed
+.Pp
+To list the ciphers supported by the server in
+preference order by protocol:
+.Bd -literal -offset indent
+$ cipherdiff -t -p www.example.com
 .Ns ...
 .Ed
 .Sh EXIT STATUS
