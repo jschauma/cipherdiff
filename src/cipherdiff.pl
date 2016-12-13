@@ -64,7 +64,7 @@ my %OPTS = (
 		'spec'    => ""
 	   );
 my $PROGNAME = basename($0);
-my $VERSION = "0.6";
+my $VERSION = "0.7";
 
 my %CLIENT_CIPHERS;
 my %CIPHERS_BY_PROTOCOL;
@@ -184,7 +184,7 @@ sub compareTwo($$) {
 
 	my $openssl = $OPTS{'openssl'};
 	my $command = "</dev/null $openssl s_client -cipher $a:$b " .
-				"-servername " . $OPTS{'host'} . " -connect " .
+				"-servername " . $OPTS{'sni'} . " -connect " .
 				$OPTS{'host'} . ":" . $OPTS{'port'} . " 2>&1";
 
 	my $out = `$command`;
@@ -284,14 +284,21 @@ sub identifyListOfCiphers() {
 				next;
 			}
 
-			my $command = "</dev/null $openssl s_client $flag -cipher $c -servername " .
-				$OPTS{'host'} . " -connect " . $OPTS{'host'} . ":" . $OPTS{'port'} . " 2>&1";
+			my $sniFlags = "-servername " . $OPTS{'sni'};
+
+sni:
+			my $command = "</dev/null $openssl s_client $flag -cipher $c $sniFlags" .
+				" -connect " . $OPTS{'host'} . ":" . $OPTS{'port'} . " 2>&1";
 			verbose("$command", 3);
 			my $out = `$command`;
 
 			if ($out =~ m/unknown option/) {
 				$protocol_flags{$flag} = 0;
 				next;
+			} elsif ($out =~ m/Unable to set TLS servername extension/i) {
+				verbose("Trying again without SNI...", 4);
+				$sniFlags = "";
+				goto sni;
 			}
 
 			# We can't just rely on the return code, since
@@ -323,6 +330,8 @@ sub identifyListOfCiphers() {
 						 $OPTS{'port'} . ": $1\n";
 				exit(1);
 				# NOTREACHED
+			} elsif ($out =~ m/write:errno=54/i) {
+				print STDERR "Server reset connection. Unable to determine support for '$c'.\n";
 			} else {
 				print "Unexpected output for $c:\n";
 				print "|$out|\n";
@@ -336,6 +345,7 @@ sub init() {
 	my ($ok);
 
 	$ok = GetOptions(
+			"SNI|S=s"       => \$OPTS{'sni'},
 			"Version|V"     => sub { print "$PROGNAME: $VERSION\n"; exit(0); },
 			"color|c"       => \$OPTS{'color'},
 			"diff|d"        => sub { $OPTS{'diff'} = 1; $OPTS{'preference'} = 1; },
@@ -386,12 +396,9 @@ sub init() {
 	$OPTS{'host'} = $ARGV[0];
 	$OPTS{'port'} = $ARGV[1] ? $ARGV[1] : 443;
 
-	if ($OPTS{'port'} =~ m/^(\d+)$/) {
-		$OPTS{'port'} = $1;
-	} else {
-		print STDERR "Invalid port: " . $OPTS{'port'} . "\n";
-		exit(1);
-		# NOTREACHED
+	if ($OPTS{'host'} =~ m/^([^:]+):(\d+)$/) {
+		$OPTS{'host'} = $1;
+		$OPTS{'port'} = $2;
 	}
 
 	if ($OPTS{'host'} =~ m/^([a-z0-9.:_-]+)$/i) {
@@ -400,6 +407,26 @@ sub init() {
 		print STDERR "Invalid hostname: " . $OPTS{'host'} . "\n";
 		exit(1);
 		# NOTREACHED
+	}
+
+	if ($OPTS{'port'} =~ m/^(\d+)$/) {
+		$OPTS{'port'} = $1;
+	} else {
+		print STDERR "Invalid port: " . $OPTS{'port'} . "\n";
+		exit(1);
+		# NOTREACHED
+	}
+
+	if ($OPTS{'sni'}) {
+		if ($OPTS{'sni'} =~ m/^([a-z0-9.:_-]+)$/i) {
+			$OPTS{'sni'} = $1;
+		} else {
+			print STDERR "Invalid SNI: " . $OPTS{'sni'} . "\n";
+			exit(1);
+			# NOTREACHED
+		}
+	} else {
+		$OPTS{'sni'} = $OPTS{'host'};
 	}
 
 	if ($OPTS{'openssl'}) {

@@ -1,5 +1,5 @@
 .\"
-.Dd November 30, 2016
+.Dd December 12, 2016
 .Dt cipherdiff 1
 .Os
 .Sh NAME
@@ -8,6 +8,7 @@
 .Sh SYNOPSIS
 .Nm
 .Op Fl Vcdhlptuv
+.Op Fl S Ar sni
 .Op Fl o Ar openssl
 .Op Fl s Ar spec
 .Ar server
@@ -34,6 +35,8 @@ will connect to port 443 on the given server.
 The following options are supported by
 .Nm :
 .Bl -tag -width o_openssl_
+.It Fl S Ar sni
+Specify the Server Name Indication to use.
 .It Fl V
 Print version information and exit.
 .It Fl c

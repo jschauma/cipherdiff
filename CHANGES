@@ -1,5 +1,10 @@
 Changelog:
 
+Version 0.7 (2016-12-12)
+* allow hostname:port to be given
+* add '-S' to allow SNI
+* detect server reset, but move on
+
 Version 0.6 (2016-11-30)
 * add '-l' to list ciphers one per line
 * add '-t' to list ciphers by protocol
