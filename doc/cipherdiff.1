@@ -1,5 +1,5 @@
 .\"
-.Dd December 12, 2016
+.Dd December 14, 2016
 .Dt cipherdiff 1
 .Os
 .Sh NAME
@@ -8,6 +8,7 @@
 .Sh SYNOPSIS
 .Nm
 .Op Fl Vcdhlptuv
+.Op Fl D Ar seconds
 .Op Fl S Ar sni
 .Op Fl o Ar openssl
 .Op Fl s Ar spec
@@ -35,6 +36,15 @@ will connect to port 443 on the given server.
 The following options are supported by
 .Nm :
 .Bl -tag -width o_openssl_
+.It Fl D Ar seconds
+Sleep for this many seconds in between connection
+attempts.
+This can be useful if your defense mechanisms might
+otherwise blacklist you for opening too many
+connections, but necessarily slows down execution time
+of
+.Nm
+significantly.
 .It Fl S Ar sni
 Specify the Server Name Indication to use.
 .It Fl V

@@ -4,7 +4,8 @@ NAME
      cipherdiff -- diff ciphersuites between a server and a spec
 
 SYNOPSIS
-     cipherdiff [-Vcdhlptuv] [-S sni] [-o openssl] [-s spec] server [port]
+     cipherdiff [-Vcdhlptuv] [-D seconds] [-S sni] [-o openssl] [-s spec]
+		server [port]
 
 DESCRIPTION
      The cipherdiff tool will report the list of SSL and TLS ciphers supported
@@ -18,6 +19,11 @@ DESCRIPTION
 
 OPTIONS
      The following options are supported by cipherdiff:
+
+     -D seconds	 Sleep for this many seconds in between connection attempts.
+		 This can be useful if your defense mechanisms might otherwise
+		 blacklist you for opening too many connections, but necessar-
+		 ily slows down execution time of cipherdiff significantly.
 
      -S sni	 Specify the Server Name Indication to use.
 
@@ -142,4 +148,4 @@ HISTORY
 BUGS
      Please file bugs and feature requests by emailing the author.
 
-NetBSD 7.0		       December 12, 2016		    NetBSD 7.0
+NetBSD 7.0		       December 14, 2016		    NetBSD 7.0

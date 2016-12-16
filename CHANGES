@@ -1,5 +1,8 @@
 Changelog:
 
+Version 0.8 (2016-12-15)
+* add '-D' to allow sleeping in between openssl(1) invocations
+
 Version 0.7 (2016-12-12)
 * allow hostname:port to be given
 * add '-S' to allow SNI

@@ -64,7 +64,7 @@ my %OPTS = (
 		'spec'    => ""
 	   );
 my $PROGNAME = basename($0);
-my $VERSION = "0.7";
+my $VERSION = "0.8";
 
 my %CLIENT_CIPHERS;
 my %CIPHERS_BY_PROTOCOL;
@@ -279,7 +279,10 @@ sub identifyListOfCiphers() {
 		verbose("Testing '$c'...");
 
 		foreach my $flag (keys(%protocol_flags)) {
-			verbose("Trying with '$flag'...", 2);
+
+			if ($flag =~ m/^-/) {
+				verbose("Trying with '$flag'...", 2);
+			}
 			if (!$protocol_flags{$flag}) {
 				next;
 			}
@@ -325,7 +328,7 @@ sni:
 					$CIPHERS_BY_PROTOCOL{$p} = [];
 				}
 				push($CIPHERS_BY_PROTOCOL{$p}, $c);
-			} elsif ($out =~ m/(.*)\nconnect:errno=0/mi) {
+			} elsif ($out =~ m/(.*)\nconnect:errno=(0|64)/mi) {
 				print STDERR "Unable to connect to ". $OPTS{'host'} . " on port " .
 						 $OPTS{'port'} . ": $1\n";
 				exit(1);
@@ -336,6 +339,8 @@ sni:
 				print "Unexpected output for $c:\n";
 				print "|$out|\n";
 			}
+
+			sleepIfNeeded();
 		}
 	}
 }
@@ -345,6 +350,7 @@ sub init() {
 	my ($ok);
 
 	$ok = GetOptions(
+			"Delay|D=i"	=> \$OPTS{'delay'},
 			"SNI|S=s"       => \$OPTS{'sni'},
 			"Version|V"     => sub { print "$PROGNAME: $VERSION\n"; exit(0); },
 			"color|c"       => \$OPTS{'color'},
@@ -569,6 +575,13 @@ sub printCipherList() {
 	}
 }
 
+sub sleepIfNeeded() {
+	if ($OPTS{'delay'}) {
+		verbose("Sleeping " . $OPTS{'delay'} . " seconds...", 2);
+		sleep($OPTS{'delay'});
+	}
+}
+
 # function : sortedKeys
 # purpose  : return a sorted array of keys for the given hash
 # input    : a hash; optionally: whether or not to sort in ascending order
@@ -604,7 +617,9 @@ sub usage($) {
 	my $FH = $err ? \*STDERR : \*STDOUT;
 
 	print $FH <<EOH
-Usage: $PROGNAME [-Vcdhlpv] [-o openssl] [-s spec] server [port]
+Usage: $PROGNAME [-Vcdhlpv] [-D seconds] [-S sni] [-o openssl] [-s spec] server [port]
+  -D seconds  sleep seconds in between connections
+  -S sni      set server name indication to use
   -V          print version information and exit
   -c          display differences in color
   -d          list differences using diff(1)
@@ -649,6 +664,7 @@ sub weighOneCipher($@) {
 			}
 			my $preferred = compareTwo($a, $b);
 			$WEIGHTED_CIPHERS{$preferred}++;
+			sleepIfNeeded();
 		}
 	}
 }
