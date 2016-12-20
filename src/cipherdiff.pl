@@ -64,7 +64,7 @@ my %OPTS = (
 		'spec'    => ""
 	   );
 my $PROGNAME = basename($0);
-my $VERSION = "0.8";
+my $VERSION = "0.9";
 
 my %CLIENT_CIPHERS;
 my %CIPHERS_BY_PROTOCOL;
@@ -328,7 +328,7 @@ sni:
 					$CIPHERS_BY_PROTOCOL{$p} = [];
 				}
 				push($CIPHERS_BY_PROTOCOL{$p}, $c);
-			} elsif ($out =~ m/(.*)\nconnect:errno=(0|64)/mi) {
+			} elsif ($out =~ m/(.*)\nconnect:errno=\d+/mi) {
 				print STDERR "Unable to connect to ". $OPTS{'host'} . " on port " .
 						 $OPTS{'port'} . ": $1\n";
 				exit(1);
@@ -652,7 +652,7 @@ sub weighOneCipher($@) {
 	my ($a, @rest) = @_;
 
 	verbose("Weighing $a against " . scalar(@rest) . " ciphers...", 2);
-	if (scalar(@rest) == 0) {
+	if ((scalar(@rest) == 0) && !$WEIGHTED_CIPHERS{$a}) {
 		$WEIGHTED_CIPHERS{$a} = 0;
 	} else {
 		foreach my $b (@rest) {
@@ -664,6 +664,9 @@ sub weighOneCipher($@) {
 			}
 			my $preferred = compareTwo($a, $b);
 			$WEIGHTED_CIPHERS{$preferred}++;
+			verbose("Preferring $a over $b.", 3);
+			verbose("$a: " . $WEIGHTED_CIPHERS{$a}, 4);
+			verbose("$b: " . $WEIGHTED_CIPHERS{$a}, 4);
 			sleepIfNeeded();
 		}
 	}
