@@ -64,7 +64,7 @@ my %OPTS = (
 		'spec'    => ""
 	   );
 my $PROGNAME = basename($0);
-my $VERSION = "0.9";
+my $VERSION = "1.1";
 
 my %CLIENT_CIPHERS;
 my %CIPHERS_BY_PROTOCOL;
@@ -322,12 +322,12 @@ sni:
 				if (!defined($SUPPORTED_CIPHERS{$c})) {
 					$SUPPORTED_CIPHERS{$c} = [];
 				}
-				push($SUPPORTED_CIPHERS{$c}, $p);
+				push(@{$SUPPORTED_CIPHERS{$c}}, $p);
 
 				if (!defined($CIPHERS_BY_PROTOCOL{$p})) {
 					$CIPHERS_BY_PROTOCOL{$p} = [];
 				}
-				push($CIPHERS_BY_PROTOCOL{$p}, $c);
+				push(@{$CIPHERS_BY_PROTOCOL{$p}}, $c);
 			} elsif ($out =~ m/(.*)\nconnect:errno=\d+/mi) {
 				print STDERR "Unable to connect to ". $OPTS{'host'} . " on port " .
 						 $OPTS{'port'} . ": $1\n";
@@ -335,6 +335,10 @@ sni:
 				# NOTREACHED
 			} elsif ($out =~ m/write:errno=54/i) {
 				print STDERR "Server reset connection. Unable to determine support for '$c'.\n";
+			} elsif ($out =~ m/:wrong version number/mi) {
+				# When checking multiple protocols, version
+				# mismatches are expected.
+				;
 			} else {
 				print "Unexpected output for $c:\n";
 				print "|$out|\n";

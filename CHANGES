@@ -1,5 +1,12 @@
 Changelog:
 
+Version 1.1 (2017-01-13)
+* suppress version mismatch errors when testing
+  multiple protocols
+
+Version 1.0 (2016-01-11)
+* make sure we push to arrays
+
 Version 0.9 (2016-12-19)
 * don't unset previous weight value
 * additional debugging output
