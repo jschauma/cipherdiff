@@ -309,11 +309,15 @@ sni:
 			# What's more, s_client(1) may return 0 on handshake
 			# failure.  Therefore, we have to do the janky thing
 			# and parse stderr. :-/
-			if ($out =~ m/New, \(NONE\), Cipher is \(NONE\)|(alert|ssl) (protocol version|handshake failure)|no cipher(s available| match)/i) {
-				verbose("'$c' not supported by the server.");
-				$UNSUPPORTED_CIPHERS{$c} = 1;
-			} elsif ($out =~ m/New,.*Cipher is [^(]/) {
+			if ($out =~ m/New,.*Cipher is [^(]/) {
 				my $p = 1;
+
+				if ($p =~ m/none/i) {
+					verbose("'$c' not supported by the server when using $flag.");
+					$UNSUPPORTED_CIPHERS{$c} = 1;
+					next;
+				}
+
 				if ($OPTS{'line'}) {
 					$p = uc($flag);
 					$p =~ s/-//;
@@ -328,6 +332,9 @@ sni:
 					$CIPHERS_BY_PROTOCOL{$p} = [];
 				}
 				push(@{$CIPHERS_BY_PROTOCOL{$p}}, $c);
+			} elsif ($out =~ m/(alert|ssl) (protocol version|handshake failure)|no cipher(s available| match)/i) {
+				verbose("'$c' not supported by the server when using $flag.");
+				$UNSUPPORTED_CIPHERS{$c} = 1;
 			} elsif ($out =~ m/(.*)\nconnect:errno=\d+/mi) {
 				print STDERR "Unable to connect to ". $OPTS{'host'} . " on port " .
 						 $OPTS{'port'} . ": $1\n";

@@ -1,5 +1,8 @@
 Changelog:
 
+Version 1.2 (2017-09-11)
+* allow s_client(1) to fail
+
 Version 1.1 (2017-01-13)
 * suppress version mismatch errors when testing
   multiple protocols
