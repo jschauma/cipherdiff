@@ -185,6 +185,7 @@ is given, or in alphabetical order if not.
 
 ---
 
+```
 NAME
      cipherdiff - diff ciphersuites between a server and a spec
 
@@ -204,16 +205,16 @@ DESCRIPTION
 OPTIONS
      The following options are supported by cipherdiff:
 
-     -D seconds  Sleep for this many seconds in between connection attempts.
+     -D seconds	 Sleep for this many seconds in between connection attempts.
 		 This can be useful if your defense mechanisms might otherwise
 		 blacklist you for opening too many connections, but necessarily
 		 slows down execution time of cipherdiff significantly.
 
      -S sni	 Specify the Server Name Indication to use.
 
-     -V 	 Print version information and exit.
+     -V		 Print version information and exit.
 
-     -c 	 When reporting cipher preference differences, display
+     -c		 When reporting cipher preference differences, display
 		 mismatches in color.  Ciphers missing on the server but found
 		 in the spec will be printed in blue, extra ciphers offered by
 		 the server but not found in the spec in magenta, ciphers that
@@ -224,38 +225,38 @@ OPTIONS
 		 This is really only useful if the provided and observed specs
 		 are sufficiently similar.
 
-     -d 	 Report differences in the cipher preferences via diff(1).
+     -d		 Report differences in the cipher preferences via diff(1).
 
 		 In this case, the cipher spec will be organized as a line-break
 		 separated list and differences displayed in 'unified' output.
 
 		 This flag implies -p.
 
-     -h 	 Display help and exit.
+     -h		 Display help and exit.
 
-     -l 	 When listing ciphers, print one cipher name per line.	This
+     -l		 When listing ciphers, print one cipher name per line.	This
 		 will also display the protocol used for the cipher in question.
 
-     -o openssl  Use the openssl(1) binary found in this location.  If not
+     -o openssl	 Use the openssl(1) binary found in this location.  If not
 		 specified, cipherdiff will look in a conservatively set PATH of
 		 the usual suspects.  (cipherdiff will not honor your PATH
 		 environment variable since it runs with taint checking turned
 		 on.)
 
-     -p 	 Perform a strict comparison to the given spec, accounting for
+     -p		 Perform a strict comparison to the given spec, accounting for
 		 server preference.  This is slow (O(n^2) on the number of
 		 ciphers supported by the openssl(1) library), as numerous
 		 connections have to be made to the server.
 
      -s spec	 Diff the server's ciphersuite against the given spec.
 
-     -t 	 When listing supported ciphers, sort output by protocol.
+     -t		 When listing supported ciphers, sort output by protocol.
 		 Implies -l.
 
-     -u 	 List ciphers supported by the local openssl(1) command, but not
+     -u		 List ciphers supported by the local openssl(1) command, but not
 		 supported by the remote server.
 
-     -v 	 Be verbose.  Can be specified multiple times.
+     -v		 Be verbose.  Can be specified multiple times.
 
 DETAILS
      Numerous tools exist to identify the different cipher suites and SSL/TLS
