@@ -1,4 +1,4 @@
-#! /usr/bin/perl -T
+#! /usr/local/bin/perl -T
 #
 # Originally written by Jan Schaumann <jschauma@netmeister.org>
 # in October 2016.
@@ -54,6 +54,16 @@ use Getopt::Long;
 Getopt::Long::Configure("bundling");
 
 $ENV{'PATH'} = "/bin:/usr/bin:/sbin:/usr/sbin:/usr/local/bin:/usr/local/sbin";
+
+###
+### Constants
+###
+
+use constant TRUE => 1;
+use constant FALSE => 0;
+
+use constant EXIT_FAILURE => 1;
+use constant EXIT_SUCCESS => 0;
 
 ###
 ### Globals
@@ -266,11 +276,13 @@ sub identifyListOfCiphers() {
 
 	my %protocol_flags;
 	if ($OPTS{'line'}) {
-		$protocol_flags{"-ssl2"} = 1;
-		$protocol_flags{"-ssl3"} = 1;
-		$protocol_flags{"-tls1"} = 1;
-		$protocol_flags{"-tls1_1"} = 1;
-		$protocol_flags{"-tls1_2"} = 1;
+		foreach my $p (qw/ssl2 ssl3 tls1 tls1_1 tls1_2 tls1_3/) {
+			if (opensslSupports($p)) {
+				$protocol_flags{"-${p}"} = 1;
+			} else {
+				print STDERR "Warning: '-$p' not supported by " . $OPTS{'openssl'} . " s_client, skipping.\n";
+			}
+		}
 	} else {
 		$protocol_flags{" "} = 1;
 	}
@@ -338,7 +350,7 @@ sni:
 			} elsif ($out =~ m/(.*)\nconnect:errno=\d+/mi) {
 				print STDERR "Unable to connect to ". $OPTS{'host'} . " on port " .
 						 $OPTS{'port'} . ": $1\n";
-				exit(1);
+				exit(EXIT_FAILURE);
 				# NOTREACHED
 			} elsif ($out =~ m/write:errno=54/i) {
 				print STDERR "Server reset connection. Unable to determine support for '$c'.\n";
@@ -363,7 +375,7 @@ sub init() {
 	$ok = GetOptions(
 			"Delay|D=i"	=> \$OPTS{'delay'},
 			"SNI|S=s"       => \$OPTS{'sni'},
-			"Version|V"     => sub { print "$PROGNAME: $VERSION\n"; exit(0); },
+			"Version|V"     => sub { print "$PROGNAME: $VERSION\n"; exit(EXIT_SUCCESS); },
 			"color|c"       => \$OPTS{'color'},
 			"diff|d"        => sub { $OPTS{'diff'} = 1; $OPTS{'preference'} = 1; },
 			"help|h"        => \$OPTS{'help'},
@@ -384,25 +396,25 @@ sub init() {
 
 	if (!scalar(@ARGV)) {
 		print STDERR "Please specify a hostname or IP address.\n";
-		exit(1);
+		exit(EXIT_FAILURE);
 		# NOTREACHED
 	}
 
 	if ($OPTS{'diff'} && !$OPTS{'spec'}) {
 		print STDERR "'-d' requires '-s'.\n";
-		exit(1);
+		exit(EXIT_FAILURE);
 		# NOTREACHED
 	}
 
 	if ($OPTS{'unsupported'} && $OPTS{'preference'}) {
 		print STDERR "'-p' and '-u' are mutually exclusive.\n";
-		exit(1);
+		exit(EXIT_FAILURE);
 		# NOTREACHED
 	}
 
 	if (($OPTS{'line'} || $OPTS{'protocols'}) && $OPTS{'spec'}) {
 		print STDERR "'-l'/'-t' and '-s' are mutually exclusive.\n";
-		exit(1);
+		exit(EXIT_FAILURE);
 		# NOTREACHED
 	}
 
@@ -422,7 +434,7 @@ sub init() {
 		$OPTS{'host'} = $1;
 	} else {
 		print STDERR "Invalid hostname: " . $OPTS{'host'} . "\n";
-		exit(1);
+		exit(EXIT_FAILURE);
 		# NOTREACHED
 	}
 
@@ -430,7 +442,7 @@ sub init() {
 		$OPTS{'port'} = $1;
 	} else {
 		print STDERR "Invalid port: " . $OPTS{'port'} . "\n";
-		exit(1);
+		exit(EXIT_FAILURE);
 		# NOTREACHED
 	}
 
@@ -439,7 +451,7 @@ sub init() {
 			$OPTS{'sni'} = $1;
 		} else {
 			print STDERR "Invalid SNI: " . $OPTS{'sni'} . "\n";
-			exit(1);
+			exit(EXIT_FAILURE);
 			# NOTREACHED
 		}
 	} else {
@@ -449,11 +461,11 @@ sub init() {
 	if ($OPTS{'openssl'}) {
 		# Yes, this is only a subset of valid pathnames,
 		# but it's good enough and lets us untaint the var.
-		if ($OPTS{'openssl'} =~ m|^([a-z0-9_/.-]+)$|i) {
+		if ($OPTS{'openssl'} =~ m|^([a-z0-9\@_/.-]+)$|i) {
 			$OPTS{'openssl'} = $1;
 		} else {
 			print STDERR "Invalid pathname '" . $OPTS{'openssl'} . "'.\n";
-			exit 1;
+			exit(EXIT_FAILURE);
 			# NOTREACHED
 			
 		}
@@ -492,6 +504,24 @@ sub listCiphers(@) {
 			print "$c: " . join(" ", sort(@{$SUPPORTED_CIPHERS{$c}})) . "\n";
 		}
 	}
+}
+
+sub opensslSupports($) {
+	my ($p) = @_;
+	verbose("Checking if " . $OPTS{'openssl'} . " supports $p...", 3);
+
+	my $command = "</dev/null " . $OPTS{'openssl'} . " s_client -$p 2>&1";
+	my $out = `$command`;
+
+	if (($? == -1) || ($out =~ m/^sh: /)) {
+		print STDERR "Unable to run '$command'. Aborting.\n";
+		exit(EXIT_FAILURE);
+	}
+
+	if ($out =~ m/unknown option.*-$p/i) {
+		return FALSE;
+	}
+	return TRUE;
 }
 
 sub plainReport() {
@@ -628,7 +658,7 @@ sub usage($) {
 	my $FH = $err ? \*STDERR : \*STDOUT;
 
 	print $FH <<EOH
-Usage: $PROGNAME [-Vcdhlpv] [-D seconds] [-S sni] [-o openssl] [-s spec] server [port]
+Usage: $PROGNAME [-Vcdhlptuv] [-D seconds] [-S sni] [-o openssl] [-s spec] server [port]
   -D seconds  sleep seconds in between connections
   -S sni      set server name indication to use
   -V          print version information and exit
@@ -639,6 +669,7 @@ Usage: $PROGNAME [-Vcdhlpv] [-D seconds] [-S sni] [-o openssl] [-s spec] server 
   -o openssl  use this openssl binary
   -p          compare or list preference order
   -s spec     compare to this spec
+  -t          like '-l', but sort by protocol
   -u          list ciphers not supported by the server
   -v          be verbose
 EOH
