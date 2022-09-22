@@ -1,5 +1,4 @@
-cipherdiff
-==========
+# cipherdiff
 
 This tool allows you to compare the list of SSL/TLS
 ciphers offered by a server to a given cipher spec.
@@ -18,6 +17,22 @@ If you have questions, comments, or suggestions,
 please contact the author at
 [jschauma@netmeister.org](mailto:jschauma@netmeister.org)
 or at [@jschauma](https://twitter.com/jschauma).
+
+## Requirements
+
+`cipherdiff(1)` is written in Perl and requires
+OpenSSL to be installed.
+
+
+## Installation
+
+To install the command and manual page somewhere
+convenient, run `make install`; the Makefile defaults
+to '/usr/local' but you can change the PREFIX:
+
+```
+$ make PREFIX=~ install
+```
 
 ## Examples
 
@@ -167,3 +182,151 @@ TLS1.2: ECDHE-RSA-AES128-GCM-SHA256 ECDHE-RSA-AES256-GCM-SHA384 ECDHE-RSA-AES128
 As before, in either case the list of ciphers is
 sorted in order of server preference if the '-p' flag
 is given, or in alphabetical order if not.
+
+---
+
+NAME
+     cipherdiff - diff ciphersuites between a server and a spec
+
+SYNOPSIS
+     cipherdiff [-Vcdhlptuv] [-D seconds] [-S sni] [-o openssl] [-s spec] server
+		[port]
+
+DESCRIPTION
+     The cipherdiff tool will report the list of SSL and TLS ciphers supported
+     by the given server in colon-separated, ordered format.  If an optional
+     spec is provided via the -s flag, then cipherdiff will also report on the
+     differences between what the server supports versus what the spec provides.
+
+     If no port is specified, cipherdiff will connect to port 443 on the given
+     server.
+
+OPTIONS
+     The following options are supported by cipherdiff:
+
+     -D seconds  Sleep for this many seconds in between connection attempts.
+		 This can be useful if your defense mechanisms might otherwise
+		 blacklist you for opening too many connections, but necessarily
+		 slows down execution time of cipherdiff significantly.
+
+     -S sni	 Specify the Server Name Indication to use.
+
+     -V 	 Print version information and exit.
+
+     -c 	 When reporting cipher preference differences, display
+		 mismatches in color.  Ciphers missing on the server but found
+		 in the spec will be printed in blue, extra ciphers offered by
+		 the server but not found in the spec in magenta, ciphers that
+		 are deprioritized by the server compared to the spec in red,
+		 and ciphers that are preferred by the server over the spec in
+		 yellow.
+
+		 This is really only useful if the provided and observed specs
+		 are sufficiently similar.
+
+     -d 	 Report differences in the cipher preferences via diff(1).
+
+		 In this case, the cipher spec will be organized as a line-break
+		 separated list and differences displayed in 'unified' output.
+
+		 This flag implies -p.
+
+     -h 	 Display help and exit.
+
+     -l 	 When listing ciphers, print one cipher name per line.	This
+		 will also display the protocol used for the cipher in question.
+
+     -o openssl  Use the openssl(1) binary found in this location.  If not
+		 specified, cipherdiff will look in a conservatively set PATH of
+		 the usual suspects.  (cipherdiff will not honor your PATH
+		 environment variable since it runs with taint checking turned
+		 on.)
+
+     -p 	 Perform a strict comparison to the given spec, accounting for
+		 server preference.  This is slow (O(n^2) on the number of
+		 ciphers supported by the openssl(1) library), as numerous
+		 connections have to be made to the server.
+
+     -s spec	 Diff the server's ciphersuite against the given spec.
+
+     -t 	 When listing supported ciphers, sort output by protocol.
+		 Implies -l.
+
+     -u 	 List ciphers supported by the local openssl(1) command, but not
+		 supported by the remote server.
+
+     -v 	 Be verbose.  Can be specified multiple times.
+
+DETAILS
+     Numerous tools exist to identify the different cipher suites and SSL/TLS
+     protocols supported by a server.  However, in order to verify whether a
+     remote server matches an exact cipher spec, one needs to iterate over all
+     protocols and compare them to the given list.
+
+     This process is very cumbersome, especially when attempted at any larger
+     scale.  cipherdiff allows you to perform this task and report on the
+     differences in a more convenient manner.  It does so by making multiple
+     connections using the openssl(1) s_client(1) command and observing the
+     cipher suite chosen by the server.
+
+     In order to be able to test support for a given cipher suite, it
+     necessarily must be supported by the local client (i.e. the openssl(1)
+     library in use).  Results against the same server will thus vary depending
+     on which cipher suites your library supports.
+
+     Finally, when comparing a server's list of ciphers to a provided spec,
+     cipherdiff will generate no output if the two match and simply return an
+     exit status of 0.
+
+EXAMPLES
+     The following examples illustrate common usage of this tool.
+
+     To merely report the cipher suites supported by www.example.com on port
+     1234:
+
+	   $ cipherdiff www.example.com 1234
+
+     To list the cipher suites supported by www.example.com on port 443 in order
+     of preference:
+
+	   $ cipherdiff -p www.example.com
+	   ECDHE-RSA-AES128-GCM-SHA256:ECDHE-RSA-AES256-GCM-SHA384:...
+
+     To list the ciphers not supported by the server:
+
+	   $ cipherdiff -u www.example.com
+	   CAMELLIA128-SHA:CAMELLIA256-SHA:DHE-DSS-AES128-GCM-SHA256:...
+
+     To compare the cipher preference on the server against the one found in the
+     file '/tmp/s':
+
+	   $ cipherdiff -s $(cat /tmp/s) -p www.example.com
+	   ...
+
+     To list the ciphers supported by the server in preference order by
+     protocol:
+
+	   $ cipherdiff -t -p www.example.com
+	   ...
+
+EXIT STATUS
+     The exit status of cipherdiff depends upon its invocation:
+
+     When comparing cipher suites (i.e. the -s flag was given), then cipherdiff
+     will return an exit status of 0 if no differences were found, an exit
+     status of 1 if any errors were encountered, and an exit status of 2 if
+     differences were found.
+
+     When listing cipher suites, cipherdiff exits 0 on success, and >0 if an
+     error occurred.
+
+SEE ALSO
+     openssl(1)
+
+HISTORY
+     cipherdiff was originally written by Jan Schaumann
+     <jschauma@netmeister.org> in October 2016.
+
+BUGS
+     Please file bugs and feature requests by emailing the author.
+```
