@@ -1,4 +1,5 @@
-# cipherdiff
+cipherdiff
+==========
 
 This tool allows you to compare the list of SSL/TLS
 ciphers offered by a server to a given cipher spec.

@@ -74,7 +74,7 @@ my %OPTS = (
 		'spec'    => ""
 	   );
 my $PROGNAME = basename($0);
-my $VERSION = "1.1";
+my $VERSION = "1.3";
 
 my %CLIENT_CIPHERS;
 my %CIPHERS_BY_PROTOCOL;
@@ -292,6 +292,7 @@ sub identifyListOfCiphers() {
 
 		foreach my $flag (keys(%protocol_flags)) {
 
+			my $selectFlag = "-cipher";
 			if ($flag =~ m/^-/) {
 				verbose("Trying with '$flag'...", 2);
 			}
@@ -299,10 +300,14 @@ sub identifyListOfCiphers() {
 				next;
 			}
 
+			if ($flag eq "-tls1_3") {
+				$selectFlag = "-ciphersuites";
+			}
+
 			my $sniFlags = "-servername " . $OPTS{'sni'};
 
 sni:
-			my $command = "</dev/null $openssl s_client $flag -cipher $c $sniFlags" .
+			my $command = "</dev/null $openssl s_client $flag $selectFlag $c $sniFlags" .
 				" -connect " . $OPTS{'host'} . ":" . $OPTS{'port'} . " 2>&1";
 			verbose("$command", 3);
 			my $out = `$command`;
@@ -321,12 +326,17 @@ sni:
 			# What's more, s_client(1) may return 0 on handshake
 			# failure.  Therefore, we have to do the janky thing
 			# and parse stderr. :-/
-			if ($out =~ m/New,.*Cipher is [^(]/) {
-				my $p = 1;
+			if ($out =~ m/New,.*Cipher is (\S+)/) {
+				my $p = $1;
 
 				if ($p =~ m/none/i) {
 					verbose("'$c' not supported by the server when using $flag.");
 					$UNSUPPORTED_CIPHERS{$c} = 1;
+					next;
+				}
+
+				if ($p ne $c) {
+					verbose("Tried '$c', but got '$p'?");
 					next;
 				}
 
