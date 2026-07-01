@@ -1,5 +1,8 @@
 Changelog:
 
+Version 1.4 (2026-07-01)
+* catch an undefined reference
+
 Version 1.3 (2022-10-13)
 * correctly detect TLS 1.3 ciphers
 

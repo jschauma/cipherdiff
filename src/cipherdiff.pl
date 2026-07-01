@@ -74,7 +74,7 @@ my %OPTS = (
 		'spec'    => ""
 	   );
 my $PROGNAME = basename($0);
-my $VERSION = "1.3";
+my $VERSION = "1.4";
 
 my %CLIENT_CIPHERS;
 my %CIPHERS_BY_PROTOCOL;
@@ -511,7 +511,9 @@ sub listCiphers(@) {
 		}
 	} else {
 		foreach my $c (@ciphers) {
-			print "$c: " . join(" ", sort(@{$SUPPORTED_CIPHERS{$c}})) . "\n";
+			if (defined($SUPPORTED_CIPHERS{$c})) {
+				print "$c: " . join(" ", sort(@{$SUPPORTED_CIPHERS{$c}})) . "\n";
+			}
 		}
 	}
 }
